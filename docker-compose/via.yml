@@ -39,8 +39,8 @@ services:
     links:
       - db:database
     environment:
-        ETHEREUM_JSONRPC_HTTP_URL: http://host.docker.internal:3050/
-        ETHEREUM_JSONRPC_TRACE_URL: http://host.docker.internal:3050/
+        ETHEREUM_JSONRPC_HTTP_URL: https://via.testnet.viablockchain.dev
+        ETHEREUM_JSONRPC_TRACE_URL: https://via.testnet.viablockchain.dev
         DATABASE_URL: postgresql://blockscout:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout
         INDEXER_DISABLE_UNCLES_FETCHER: true
         INDEXER_CATCHUP_BLOCKS_BATCH_SIZE: 10

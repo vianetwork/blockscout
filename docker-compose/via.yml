@@ -1,0 +1,81 @@
+version: '3.9'
+
+services:
+  redis-db:
+    extends:
+      file: ./services/redis.yml
+      service: redis-db
+
+  db-init:
+    extends:
+      file: ./services/db.yml
+      service: db-init
+
+  db:
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    extends:
+      file: ./services/db.yml
+      service: db
+
+  backend:
+    depends_on:
+      - db
+      - redis-db
+    extends:
+      file: ./services/backend.yml
+      service: backend
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile
+      args:
+        API_V1_READ_METHODS_DISABLED: "false"
+        DISABLE_WEBAPP: "false"
+        API_V1_WRITE_METHODS_DISABLED: "false"
+        ADMIN_PANEL_ENABLED: ""
+        RELEASE_VERSION: 8.0.2
+        CHAIN_TYPE: via
+    links:
+      - db:database
+    environment:
+        ETHEREUM_JSONRPC_HTTP_URL: https://via.testnet.viablockchain.dev
+        ETHEREUM_JSONRPC_TRACE_URL: https://via.testnet.viablockchain.dev
+        DATABASE_URL: postgresql://blockscout:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout
+        INDEXER_DISABLE_UNCLES_FETCHER: true
+        INDEXER_CATCHUP_BLOCKS_BATCH_SIZE: 10
+        INDEXER_CATCHUP_BLOCKS_CONCURRENCY: 1
+        INDEXER_BLOCK_INTERVAL: 5s
+        INDEXER_BLOCKS_CONCURRENCY: 1
+        INDEXER_EMPTY_BLOCKS_SANITIZER_BATCH_SIZE: 10
+        INDEXER_EMPTY_BLOCKS_SANITIZER_INTERVAL: 120s
+        INDEXER_VIA_BATCHES_ENABLED: true
+        INDEXER_DEBUG_LOG: true
+
+  frontend:
+    depends_on:
+      - backend
+    image: via:latest
+    restart: always
+    container_name: 'frontend'
+    env_file:
+      -  ./envs/common-frontend.env
+    environment:
+      NEXT_PUBLIC_STATS_API_HOST:
+
+  proxy:
+    depends_on:
+      - backend
+      - frontend
+    extends:
+      file: ./services/nginx-explorer.yml
+      service: proxy
+    volumes:
+      - "./proxy/explorer.conf.template:/etc/nginx/templates/default.conf.template"
+
+  sc-verifier:
+    extends:
+      file: ./services/smart-contract-verifier.yml
+      service: smart-contract-verifier
+    ports:
+      - 8082:8050

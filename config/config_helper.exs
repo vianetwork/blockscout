@@ -23,6 +23,7 @@ defmodule ConfigHelper do
         {:suave, nil} => [Explorer.Repo.Suave],
         {:zilliqa, nil} => [Explorer.Repo.Zilliqa],
         {:zksync, nil} => [Explorer.Repo.ZkSync],
+        {:via, nil} => [Explorer.Repo.Via],
         {:neon, nil} => [Explorer.Repo.Neon],
         {:optimism, :celo} => [
           Explorer.Repo.Optimism,
@@ -433,6 +434,7 @@ defmodule ConfigHelper do
     "zetachain" => :zetachain,
     "zilliqa" => :zilliqa,
     "zksync" => :zksync,
+    "via" => :via,
     "neon" => :neon,
     "optimism-celo" => {:optimism, :celo}
   }

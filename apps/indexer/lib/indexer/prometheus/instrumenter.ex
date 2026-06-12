@@ -9,7 +9,7 @@ defmodule Indexer.Prometheus.Instrumenter do
 
   alias EthereumJSONRPC.Utility.RangesHelper
 
-  @rollups [:arbitrum, :zksync, :optimism, :scroll]
+  @rollups [:arbitrum, :zksync, :via, :optimism, :scroll]
 
   @histogram [
     name: :block_full_processing_duration_microseconds,

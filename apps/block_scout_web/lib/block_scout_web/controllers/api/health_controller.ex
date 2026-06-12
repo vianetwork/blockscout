@@ -9,7 +9,7 @@ defmodule BlockScoutWeb.API.HealthController do
 
   @ok_message "OK"
   @backfill_multichain_search_db_migration_name "backfill_multichain_search_db"
-  @rollups [:arbitrum, :zksync, :optimism, :scroll]
+  @rollups [:arbitrum, :zksync, :via, :optimism, :scroll]
 
   @doc """
   Handles health checks for the application.

@@ -42,7 +42,8 @@ defmodule BlockScoutWeb.API.V2.VerificationControllerTest do
     end
   end
 
-  if Application.compile_env(:explorer, :chain_type) !== :zksync do
+  if Application.compile_env(:explorer, :chain_type) !== :zksync &&
+       Application.compile_env(:explorer, :chain_type) !== :via do
     describe "bytecode lookup on verification requests" do
       # Set up Mox and start on-demand bytecode fetcher with mocked transport
       setup :set_mox_global

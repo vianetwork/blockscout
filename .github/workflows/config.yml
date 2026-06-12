@@ -5,6 +5,7 @@ on:
     branches:
       - master
       - dev
+      - production-via
     paths-ignore:
       - "CHANGELOG.md"
       - "**/README.md"
@@ -52,6 +53,7 @@ jobs:
               "stability",
               "zetachain",
               "zilliqa",
+              "via",
               "zksync",
               "neon"
             ];

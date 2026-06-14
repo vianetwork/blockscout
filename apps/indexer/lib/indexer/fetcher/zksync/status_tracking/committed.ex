@@ -9,7 +9,8 @@ defmodule Indexer.Fetcher.ZkSync.StatusTracking.Committed do
   import Indexer.Fetcher.ZkSync.StatusTracking.CommonUtils,
     only: [
       check_if_batch_status_changed: 3,
-      associate_and_import_or_prepare_for_recovery: 4
+      associate_and_import_or_prepare_for_recovery: 4,
+      settle_from_l2_only?: 0
     ]
 
   import Indexer.Fetcher.ZkSync.Utils.Logging, only: [log_info: 1]
@@ -63,10 +64,15 @@ defmodule Indexer.Fetcher.ZkSync.StatusTracking.Committed do
           :look_for_batches ->
             log_info("The batch #{expected_batch_number} looks like committed")
 
-            commit_transaction_receipt =
-              Rpc.fetch_transaction_receipt_by_hash(transaction_hash, json_l1_rpc_named_arguments)
+            batches_numbers_from_rpc =
+              if settle_from_l2_only?() do
+                [expected_batch_number]
+              else
+                commit_transaction_receipt =
+                  Rpc.fetch_transaction_receipt_by_hash(transaction_hash, json_l1_rpc_named_arguments)
 
-            batches_numbers_from_rpc = get_committed_batches_from_logs(commit_transaction_receipt["logs"])
+                get_committed_batches_from_logs(commit_transaction_receipt["logs"])
+              end
 
             associate_and_import_or_prepare_for_recovery(
               batches_numbers_from_rpc,

@@ -1498,6 +1498,11 @@ config :indexer, Indexer.Fetcher.ZkSync.TransactionBatch.Supervisor,
 
 config :indexer, Indexer.Fetcher.ZkSync.BatchesStatusTracker,
   zksync_l1_rpc: System.get_env("INDEXER_ZKSYNC_L1_RPC"),
+  # When true, batch commit/prove/execute status is taken from the L2 RPC alone
+  # (the rollup server reports each batch's settlement transaction), and the
+  # parent-chain transaction is not fetched/decoded to expand the batch list.
+  # Bitcoin-settled rollups (Via) set this; Ethereum L1 rollups leave it false.
+  settle_from_l2_only: ConfigHelper.parse_bool_env_var("INDEXER_ZKSYNC_SETTLE_FROM_L2_ONLY"),
   recheck_interval: ConfigHelper.parse_integer_env_var("INDEXER_ZKSYNC_BATCHES_STATUS_RECHECK_INTERVAL", 60)
 
 config :indexer, Indexer.Fetcher.ZkSync.BatchesStatusTracker.Supervisor,

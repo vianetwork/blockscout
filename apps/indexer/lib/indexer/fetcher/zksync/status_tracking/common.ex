@@ -9,6 +9,22 @@ defmodule Indexer.Fetcher.ZkSync.StatusTracking.CommonUtils do
   import Indexer.Fetcher.ZkSync.Utils.Logging, only: [log_warning: 1]
 
   @doc """
+    Returns true when batch settlement status is sourced solely from the L2 RPC.
+
+    The rollup server already reports each batch's commit/prove/execute
+    transaction one batch at a time, so the parent-chain transaction does not
+    need to be fetched and decoded to discover the affected batches. Bitcoin
+    settlement (Via) sets this; the default Ethereum L1 path leaves it false and
+    expands the batch list from the L1 transaction's logs/calldata.
+  """
+  @spec settle_from_l2_only?() :: boolean()
+  def settle_from_l2_only? do
+    :indexer
+    |> Application.get_env(Indexer.Fetcher.ZkSync.BatchesStatusTracker, [])
+    |> Keyword.get(:settle_from_l2_only, false)
+  end
+
+  @doc """
     Fetches the details of the batch with the given number and checks if the representation of
     the same batch in the database refers to the same commitment, proving, or executing transaction
     depending on `transaction_type`. If the transaction state changes, the new transaction is prepared for

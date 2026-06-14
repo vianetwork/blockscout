@@ -9,7 +9,8 @@ defmodule Indexer.Fetcher.ZkSync.StatusTracking.Proven do
   import Indexer.Fetcher.ZkSync.StatusTracking.CommonUtils,
     only: [
       check_if_batch_status_changed: 3,
-      associate_and_import_or_prepare_for_recovery: 4
+      associate_and_import_or_prepare_for_recovery: 4,
+      settle_from_l2_only?: 0
     ]
 
   import Indexer.Fetcher.ZkSync.Utils.Logging, only: [log_info: 1]
@@ -59,8 +60,14 @@ defmodule Indexer.Fetcher.ZkSync.StatusTracking.Proven do
 
           :look_for_batches ->
             log_info("The batch #{expected_batch_number} looks like proven")
-            prove_transaction = Rpc.fetch_transaction_by_hash(transaction_hash, json_l1_rpc_named_arguments)
-            batches_numbers_from_rpc = Rpc.get_proven_batches_from_calldata(prove_transaction["input"])
+
+            batches_numbers_from_rpc =
+              if settle_from_l2_only?() do
+                [expected_batch_number]
+              else
+                prove_transaction = Rpc.fetch_transaction_by_hash(transaction_hash, json_l1_rpc_named_arguments)
+                Rpc.get_proven_batches_from_calldata(prove_transaction["input"])
+              end
 
             associate_and_import_or_prepare_for_recovery(
               batches_numbers_from_rpc,

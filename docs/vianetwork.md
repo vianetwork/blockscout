@@ -13,20 +13,19 @@ also answers the same `zks_*` JSON-RPC methods that the ZKsync indexer already
 calls.
 
 Because the data has the same shape, this backend indexes Via as the **`zksync`
-chain type**. The ZKsync schema, indexer, API, and views all apply to Via with
-no changes. There is no separate Via chain type, no parallel set of database
-tables, and no Via-specific controllers or fetchers. Setting `CHAIN_TYPE=zksync`
-and pointing the indexer at a Via server is enough to index a Via chain.
+chain type**, with no separate controllers or fetchers. Via reuses the execution
+marker `0x` followed by 64 hexadecimal ones across batches; it is not a Bitcoin
+transaction. The nullable `via_executed_at` batch column stores each accepted
+execution time, and the API uses it instead of the shared marker's lifecycle time.
 
-## The one real difference: how settlement is discovered
+## How settlement is discovered
 
 A rollup batch is not final the moment it is produced. It moves through three
 settlement steps on the parent chain: it is committed, then proven, then
 executed. For each batch, the explorer records the parent-chain transaction that
 performed each step.
 
-Via and ZKsync differ in exactly one place: how the indexer learns which batches
-a settlement transaction covers.
+Via and ZKsync discover the batches covered by settlement differently.
 
 On ZKsync, settlement happens on Ethereum, and a single Ethereum transaction can
 settle many batches at once. To find out which batches a transaction covered, the
@@ -45,15 +44,13 @@ endpoint at all, because settlement is never read from a parent chain.
 
 ## Where this lives in the code
 
-The behavior above is the only Via-specific logic in this fork, and it sits
-behind one environment variable, `INDEXER_ZKSYNC_SETTLE_FROM_L2_ONLY`.
+`INDEXER_ZKSYNC_SETTLE_FROM_L2_ONLY` makes the committed, proven, and executed
+trackers use the batch being checked instead of expanding parent-chain logs or
+calldata. Unflagged deployments keep upstream parent-chain discovery.
 
-When the flag is set, the committed, proven, and executed status trackers under
-`Indexer.Fetcher.ZkSync.StatusTracking` skip the parent-chain expansion and use
-the batch number they are already checking. The check itself is
-`Indexer.Fetcher.ZkSync.StatusTracking.CommonUtils.settle_from_l2_only?/0`. When
-the flag is unset the trackers behave exactly as upstream ZKsync does, so this
-change is invisible to a normal ZKsync deployment.
+The shared batch RPC conversion additionally requires `viaIsFinalized=true` and
+an execution time after the Unix epoch for the Via marker only. Genuine execution
+hashes keep upstream parsing, storage, and timestamp projection unchanged.
 
 ## Running a Via instance
 
@@ -65,3 +62,18 @@ change is invisible to a normal ZKsync deployment.
   configuration
 
 No L1 RPC endpoint is required.
+
+The configured Via node must expose `viaIsFinalized` and authoritative per-batch
+`executedAt` values (via-core #387, `core-v28.1.1-rc.1` or later).
+Missing verdicts or invalid marker timestamps, including non-string values,
+leave execution unassociated rather than borrowing another batch's time.
+
+Apply the ZkSync migration and allow read replicas to catch up before starting
+new binaries. Drain old indexer writers before recovering node settlement data.
+Existing marker associations retain their hash and status with an unknown
+timestamp; the migration does not backfill them, and normal polling does not
+revisit them. A separately authorized full re-import requires authoritative
+historical data from the configured node.
+
+For a binary rollback, retain the additive column. Rolling the migration down
+destroys batch-local execution times; reapplying it cannot recover them.

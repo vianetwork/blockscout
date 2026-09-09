@@ -99,13 +99,14 @@ defmodule Explorer.Chain.Import.Runner.ZkSync.TransactionBatches do
           commit_id: fragment("EXCLUDED.commit_id"),
           prove_id: fragment("EXCLUDED.prove_id"),
           execute_id: fragment("EXCLUDED.execute_id"),
+          via_executed_at: fragment("EXCLUDED.via_executed_at"),
           inserted_at: fragment("LEAST(?, EXCLUDED.inserted_at)", tb.inserted_at),
           updated_at: fragment("GREATEST(?, EXCLUDED.updated_at)", tb.updated_at)
         ]
       ],
       where:
         fragment(
-          "(EXCLUDED.timestamp, EXCLUDED.l1_transaction_count, EXCLUDED.l2_transaction_count, EXCLUDED.root_hash, EXCLUDED.l1_gas_price, EXCLUDED.l2_fair_gas_price, EXCLUDED.start_block, EXCLUDED.end_block, EXCLUDED.commit_id, EXCLUDED.prove_id, EXCLUDED.execute_id) IS DISTINCT FROM (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "(EXCLUDED.timestamp, EXCLUDED.l1_transaction_count, EXCLUDED.l2_transaction_count, EXCLUDED.root_hash, EXCLUDED.l1_gas_price, EXCLUDED.l2_fair_gas_price, EXCLUDED.start_block, EXCLUDED.end_block, EXCLUDED.commit_id, EXCLUDED.prove_id, EXCLUDED.execute_id, EXCLUDED.via_executed_at) IS DISTINCT FROM (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           tb.timestamp,
           tb.l1_transaction_count,
           tb.l2_transaction_count,
@@ -116,7 +117,8 @@ defmodule Explorer.Chain.Import.Runner.ZkSync.TransactionBatches do
           tb.end_block,
           tb.commit_id,
           tb.prove_id,
-          tb.execute_id
+          tb.execute_id,
+          tb.via_executed_at
         )
     )
   end

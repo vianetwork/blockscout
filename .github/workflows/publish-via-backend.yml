@@ -1,0 +1,118 @@
+name: Publish Via backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Full merged master commit to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-via-backend-${{ inputs.source_sha }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and publish Via backend
+    if: github.repository == 'vianetwork/blockscout' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      SOURCE_SHA: ${{ inputs.source_sha }}
+      IMAGE_REPOSITORY: docker.io/vianetwork/blockscout-backend
+    steps:
+      - name: Check publication prerequisites
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'A full lowercase commit SHA is required'; exit 1; }
+          [[ -n "$DOCKERHUB_USER" && -n "$DOCKERHUB_TOKEN" ]] || {
+            echo 'Provision DOCKERHUB_USER and DOCKERHUB_TOKEN in repository Actions secrets'; exit 1;
+          }
+
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ inputs.source_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify merged source and derive image identity
+        id: source
+        run: |
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git merge-base --is-ancestor "$SOURCE_SHA" origin/master
+          version=$(sed -n 's/^[[:space:]]*version: "\([0-9][0-9.]*\)",$/\1/p' mix.exs)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          image="$IMAGE_REPOSITORY:$version-via-${SOURCE_SHA:0:12}-$GITHUB_RUN_ID.$GITHUB_RUN_ATTEMPT"
+          printf 'version=%s\nimage=%s\n' "$version" "$image" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build combined zkSync API and indexer
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: ${{ steps.source.outputs.image }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/vianetwork/blockscout
+            org.opencontainers.image.revision=${{ inputs.source_sha }}
+            org.opencontainers.image.version=${{ steps.source.outputs.version }}
+          build-args: |
+            CHAIN_TYPE=zksync
+            RELEASE_VERSION=${{ steps.source.outputs.version }}
+            BLOCKSCOUT_VERSION=v${{ steps.source.outputs.version }}.+commit.${{ inputs.source_sha }}
+            DISABLE_API=false
+
+      - name: Smoke check the packaged release
+        env:
+          IMAGE: ${{ steps.source.outputs.image }}
+          RELEASE_VERSION: ${{ steps.source.outputs.version }}
+        run: |
+          test "$(docker image inspect --format '{{.Architecture}}' "$IMAGE")" = amd64
+          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$IMAGE")" = "$SOURCE_SHA"
+          docker run --rm --entrypoint sh "$IMAGE" -ec '
+            test "$CHAIN_TYPE" = zksync
+            test "$DISABLE_API" = false
+            test -r "/app/releases/$RELEASE_VERSION/config_helper.exs"
+            test -r /app/config/config_helper.exs
+            test -x /app/bin/blockscout
+            bin/blockscout version
+          '
+
+      - name: Authenticate to Via Docker Hub
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish and verify the registry digest
+        env:
+          IMAGE: ${{ steps.source.outputs.image }}
+        run: |
+          docker push "$IMAGE"
+          reference=$(docker image inspect --format '{{index .RepoDigests 0}}' "$IMAGE")
+          digest="${reference##*@}"
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          pinned="$IMAGE_REPOSITORY@$digest"
+          docker buildx imagetools inspect "$pinned"
+          docker pull "$pinned"
+          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$pinned")" = "$SOURCE_SHA"
+          test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.source"}}' "$pinned")" = https://github.com/vianetwork/blockscout
+          {
+            printf 'Source: %s\n\n' "$SOURCE_SHA"
+            printf 'Workflow revision: %s\n\n' "$GITHUB_SHA"
+            printf 'Image: %s\n\n' "$IMAGE"
+            printf 'Digest pin: %s\n\n' "$pinned"
+            printf 'Platform: linux/amd64; chain type: zksync; combined API/indexer.\n\n'
+            printf 'Packaging smoke passed. Database migration, startup, and rollback rehearsal remain deployment gates.\n'
+          } >> "$GITHUB_STEP_SUMMARY"

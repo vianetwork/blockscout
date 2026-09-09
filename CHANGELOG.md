@@ -1,5 +1,252 @@
 # Changelog
 
+## 11.2.8
+
+### 🚀 Features
+
+- Add missing address native coin balances count indexer metric ([#14729](https://github.com/blockscout/blockscout/issues/14729))
+- Add market source requests metric with endpoint type labels ([#14725](https://github.com/blockscout/blockscout/issues/14725))
+
+### 🐛 Bug Fixes
+
+- Use cgroup memory limit for memory monitor in containers ([#14739](https://github.com/blockscout/blockscout/issues/14739))
+
+### 🚜 Refactor
+
+- Switch TAC operations in search to Read API v2 ([#14719](https://github.com/blockscout/blockscout/issues/14719))
+
+### ⚡ Performance
+
+- Batch on-demand internal transaction trace requests ([#14724](https://github.com/blockscout/blockscout/issues/14724))
+
+### New ENV variables
+
+| Variable                                            | Description                                                                                                                                                                                     | Parameters                                                          |
+|-----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| `INDEXER_ON_DEMAND_INTERNAL_TRANSACTIONS_BLOCKS_BATCH_SIZE`    | Batch size for block trace requests in the on-demand internal transactions fetcher. The minimum value is `1`. Implemented in [#14724](https://github.com/blockscout/blockscout/pull/14724).                                                                                                                                                                                                                                                                                                                                  | Version: v11.2.8\+ <br />Default: `2` <br />Applications: Indexer                                           |
+| `INDEXER_ON_DEMAND_INTERNAL_TRANSACTIONS_TRANSACTIONS_BATCH_SIZE` | Batch size for transaction trace requests in the on-demand internal transactions fetcher. The minimum value is `1`. Implemented in [#14724](https://github.com/blockscout/blockscout/pull/14724).                                                                                                                                                                                                                                                                                                                              | Version: v11.2.8\+ <br />Default: `20` <br />Applications: Indexer                                          |
+| `INDEXER_METRICS_ENABLED_MISSING_ADDRESS_NATIVE_COIN_BALANCES_COUNT` | Flag to enable indexer metric: the count of address native coin balances with missing values. Implemented in [#14729](https://github.com/blockscout/blockscout/pull/14729). | Version: v11.2.8\+ <br />Default: true <br />Applications: Indexer   |
+
+
+## 11.2.7
+
+### 🚀 Features
+
+- Add /api/v2/transactions/{hash}/preview endpoint ([#14638](https://github.com/blockscout/blockscout/issues/14638), [#14703](https://github.com/blockscout/blockscout/issues/14703), [#14704](https://github.com/blockscout/blockscout/issues/14704))
+
+### 🐛 Bug Fixes
+
+- Fix state changes for sponsored transactions ([#14702](https://github.com/blockscout/blockscout/issues/14702))
+
+### ⚡ Performance
+
+- Reduce query count and payload in transaction API endpoint ([#14705](https://github.com/blockscout/blockscout/issues/14705))
+- Cache empty implementations of verified contracts longer ([#14696](https://github.com/blockscout/blockscout/issues/14696))
+- Fetch address existence checks in a single query ([#14694](https://github.com/blockscout/blockscout/issues/14694))
+- Reuse HTTP connections and parallelize microservice preloads ([#14689](https://github.com/blockscout/blockscout/issues/14689), [#14707](https://github.com/blockscout/blockscout/issues/14707))
+- Fix transform addresses tests for zksync ([#14717](https://github.com/blockscout/blockscout/pull/14717))
+
+### New ENV variables
+
+| Variable                                            | Description                                                                                                                                                                                     | Parameters                                                          |
+|-----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| `CONTRACT_PROXY_EMPTY_IMPLEMENTATION_DATA_CACHE_TTL`   | Empty probe results ("not a proxy") of smart-contracts verified on the address itself are refreshed with a dedicated, much longer TTL. Unverified contracts, bytecode twins, and real proxies keep the existing TTL behavior. [Time format](/setup/env-variables/backend-env-variables#time-format). Implemented in [#14689](https://github.com/blockscout/blockscout/pull/14689). | Version: v11.2.7+ <br />Default: `1d` <br />Applications: API                                                                                                                                            |
+| `MICROSERVICE_HTTP_POOL_SIZE` | Total size of the keep-alive connection pools used by `Explorer.MicroserviceInterfaces.HttpClient` for BENS and Metadata requests. This total is split across multiple pools controlled by `MICROSERVICE_HTTP_POOL_COUNT`. Each individual pool size is calculated as `MICROSERVICE_HTTP_POOL_SIZE / MICROSERVICE_HTTP_POOL_COUNT`. Two logical pools are used: `:microservices` for short requests on the critical path and `:microservices_proxy` for requests proxied to a microservice on behalf of an API caller, so a handful of long-running proxied requests can no longer starve the preloads. Both pools are supervised from `Explorer.Application`. Implemented in [#14689](https://github.com/blockscout/blockscout/pull/14689) | Version: v11.2.7+ <br />Default: `1000` <br />Applications: API |
+| `MICROSERVICE_HTTP_POOL_COUNT` | Number of individual connection pools to split `MICROSERVICE_HTTP_POOL_SIZE` across. Pool splitting allows traffic to spread across multiple processes, reducing contention. Each pool size is calculated as `MICROSERVICE_HTTP_POOL_SIZE / MICROSERVICE_HTTP_POOL_COUNT`. Implemented in [#14707](https://github.com/blockscout/blockscout/pull/14707) | Version: v11.2.7+ <br />Default: `4` <br />Applications: API, Indexer |
+
+
+## 11.2.6
+
+### 🐛 Bug Fixes
+
+- Fix current token balances fetcher result ([#14677](https://github.com/blockscout/blockscout/issues/14677))
+
+
+## 11.2.5
+
+### 🚀 Features
+
+- Add average_block_time Prometheus metric ([#14673](https://github.com/blockscout/blockscout/issues/14673))
+- Add json_rpc_calls_count metric for per-method request counts ([#14668](https://github.com/blockscout/blockscout/issues/14668))
+- Add env to disable OnDemand.TokenBalance fetcher ([#14666](https://github.com/blockscout/blockscout/issues/14666))
+- Track eth_call requests by method id in L1/L2 metrics ([#14665](https://github.com/blockscout/blockscout/issues/14665))
+- Track L1 JSON RPC requests from rollups in separate metrics ([#14663](https://github.com/blockscout/blockscout/issues/14663))
+
+### 🐛 Bug Fixes
+
+- Handle Solidity function type in decoded ABI values ([#14672](https://github.com/blockscout/blockscout/issues/14672))
+- Prevent Memory.Monitor crash on restarting OnDemand fetchers ([#14670](https://github.com/blockscout/blockscout/issues/14670))
+- Ignore traces of duplicated transactions ([#14669](https://github.com/blockscout/blockscout/issues/14669))
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump ex_abi lib version ([#14671](https://github.com/blockscout/blockscout/issues/14671))
+
+
+### New ENV variables
+
+| Variable                                            | Description                                                                                                                                                                                     | Parameters                                                          |
+|-----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| `INDEXER_DISABLE_TOKEN_BALANCE_ON_DEMAND_FETCHER`             | If `true`, `Indexer.Fetcher.OnDemand.TokenBalance` fetcher is disabled at runtime.                                                                                                                                                                                                                                                                                                                                                                                                                                                | Version: v11.2.5\+ <br />Default: `false` <br />Applications: Indexer                                      |
+
+
+## 11.2.4
+
+### 🚀 Features
+
+- Add eden chain_type with sponsored transaction support ([#14643](https://github.com/blockscout/blockscout/issues/14643))
+
+### 🐛 Bug Fixes
+
+- Enqueue transactions and addresses to multichain queue on block full refetch ([#14652](https://github.com/blockscout/blockscout/issues/14652))
+- Fix OnDemand.TokenBalance import matching ([#14649](https://github.com/blockscout/blockscout/issues/14649))
+- Let INDEXER_OPTIMISM_L1_BATCH_INBOX/SUBMITTER override SystemConfig ([#14645](https://github.com/blockscout/blockscout/issues/14645))
+- Sort data before inserting to export queues ([#14642](https://github.com/blockscout/blockscout/issues/14642))
+- Add missing action_fallback to SolidityScanController ([#14635](https://github.com/blockscout/blockscout/issues/14635))
+- Fix InternalTransaction fetcher test ([#14634](https://github.com/blockscout/blockscout/issues/14634))
+- Handle not-loaded gas_token associations in Celo transaction view ([#14633](https://github.com/blockscout/blockscout/issues/14633))
+
+### ⚙️ Miscellaneous Tasks
+
+- Optimize fetch_coin_balance query ([#14648](https://github.com/blockscout/blockscout/issues/14648))
+- Return proper status codes and string-typed block numbers in b… ([#14646](https://github.com/blockscout/blockscout/issues/14646))
+- Optimize transactions event notifying ([#14637](https://github.com/blockscout/blockscout/issues/14637))
+- Add deposits and withdrawals health metrics for rollups and ETH ([#14632](https://github.com/blockscout/blockscout/issues/14632))
+- Optimize realtime events processing ([#14625](https://github.com/blockscout/blockscout/issues/14625))
+- Add refetch_needed_blocks_count indexer metric ([#14630](https://github.com/blockscout/blockscout/issues/14630))
+
+### New ENV variables
+
+| Variable                                            | Description                                                                                                                                                                                     | Parameters                                                          |
+|-----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| `HEALTH_MONITOR_DEPOSITS_PERIOD`                        | New deposits indexed max delay in /health API endpoint. [Time format](/setup/env-variables/backend-env-variables#time-format). Implemented in [#14632](https://github.com/blockscout/blockscout/pull/14632).                                                                                                                                                                                                                                       | Version: v11.2.4\+ <br />Default: `4h` <br />Applications: API, Indexer                                                                                                                                                                                                                                                                                                           |
+| `HEALTH_MONITOR_WITHDRAWALS_PERIOD`                     | New withdrawals indexed max delay in /health API endpoint. [Time format](/setup/env-variables/backend-env-variables#time-format). Implemented in [#14632](https://github.com/blockscout/blockscout/pull/14632).                                                                                                                                                                                                                                    | Version: v11.2.4\+ <br />Default: `4h` <br />Applications: API, Indexer                                                                                                                                                                                                                                                                                                           |
+| `DB_EVENTS_LISTENER_BATCH_SIZE`                         | Max events in one batch to be processed by DB events listener. Implemented in [#14625](https://github.com/blockscout/blockscout/pull/14625).                                                                                                                                                                                                                                                                                                       | Version: v11.2.4\+ <br />Default: `100` <br />Applications: API                                                                                                                                                                                                                                                                                                       |
+| `REALTIME_EVENT_HANDLERS_BATCH_SIZE`                    | Max events in one batch to be processed by each realtime event handler. Implemented in [#14625](https://github.com/blockscout/blockscout/pull/14625).                                                                                                                                                                                                                                                                                              | Version: v11.2.4\+ <br />Default: `100` <br />Applications: API                                                                                                                                                                                                                                                                                                       |
+
+
+## 11.2.3
+
+### 🚀 Features
+
+- Make ReplacedTransaction fetcher batch/concurrency configurable and auto-disable it when pending transactions fetcher is off ([#14576](https://github.com/blockscout/blockscout/issues/14576))
+- Report per-process memory in memory_consumed metric ([#14572](https://github.com/blockscout/blockscout/issues/14572))
+
+### 🐛 Bug Fixes
+
+- Disable ETH bytecode DB sources fetching for minimal proxies ([#14622](https://github.com/blockscout/blockscout/issues/14622))
+- Reconcile stuck pending smart_contract_verification_statuses ([#14616](https://github.com/blockscout/blockscout/issues/14616))
+- Eliminate n+1 on historic exchange rate fetching ([#14615](https://github.com/blockscout/blockscout/issues/14615))
+- Prevent stuck pending_block_operations from zero-value internal transactions ([#14613](https://github.com/blockscout/blockscout/issues/14613))
+- Fix 422 in /api/v2/blocks/:block_number/countdown ([#14612](https://github.com/blockscout/blockscout/issues/14612))
+- Extend exception timeout definition ([#14610](https://github.com/blockscout/blockscout/issues/14610))
+- Prevent decoded_input_data crash on partial to_address map ([#14608](https://github.com/blockscout/blockscout/issues/14608))
+- Fix tuple json encoding error ([#14606](https://github.com/blockscout/blockscout/issues/14606))
+- Inherit timeout for update_token_instances_owner ([#14599](https://github.com/blockscout/blockscout/issues/14599))
+- Add missing preload_contract_creation_internal_transaction condition ([#14604](https://github.com/blockscout/blockscout/issues/14604))
+- Eliminate mostly Logger.configure; Make debug logging on failed tx decoding ([#14601](https://github.com/blockscout/blockscout/issues/14601))
+- Handle incorrect number of top-level calls ([#14600](https://github.com/blockscout/blockscout/issues/14600))
+- Re-run handle_partially_imported_blocks on error ([#14597](https://github.com/blockscout/blockscout/issues/14597))
+- Apply ZRC-2 token_type condition only for zilliqa ([#14585](https://github.com/blockscout/blockscout/issues/14585))
+- Use struct field access for token balance broadcast filter ([#14568](https://github.com/blockscout/blockscout/issues/14568))
+- Adapt uncataloged_token_transfer_block_numbers for arc ([#14564](https://github.com/blockscout/blockscout/issues/14564))
+
+### 📚 Documentation
+
+- Update CONTRIBUTING.md: target PRs at dev branch ([#14549](https://github.com/blockscout/blockscout/issues/14549))
+
+### ⚡ Performance
+
+- Optimize transaction to internal transaction preload ([#14596](https://github.com/blockscout/blockscout/issues/14596))
+- Use equality and UNION ALL instead of = ANY for topic filters in Etherscan getLogs ([#14595](https://github.com/blockscout/blockscout/issues/14595))
+- Push token balance staleness filter into SQL and add supporting index ([#14592](https://github.com/blockscout/blockscout/issues/14592))
+- Optimize topic-only getLogs ordering and add supporting logs index ([#14593](https://github.com/blockscout/blockscout/issues/14593))
+- Order getLogs by log.block_number to enable early LIMIT ([#14588](https://github.com/blockscout/blockscout/issues/14588))
+
+### ⚙️ Miscellaneous Tasks
+
+- Add api-v2-temp-token-ttl ([#14620](https://github.com/blockscout/blockscout/issues/14620))
+- Demote some logs to debug ([#14611](https://github.com/blockscout/blockscout/issues/14611))
+- Make async logger call on API response ([#14609](https://github.com/blockscout/blockscout/issues/14609))
+- Hibernate BufferedTask on empty queue ([#14607](https://github.com/blockscout/blockscout/issues/14607))
+- Increase logger params ([#14603](https://github.com/blockscout/blockscout/issues/14603))
+- Use Repo.replica as a default repo for transaction preload ([#14591](https://github.com/blockscout/blockscout/issues/14591))
+- Differentiate blocks count event by type ([#14573](https://github.com/blockscout/blockscout/issues/14573))
+- Add availability to broadcast blocks count instead of full block ([#14571](https://github.com/blockscout/blockscout/issues/14571))
+
+### New ENV variables
+
+| Variable                                            | Description                                                                                                                                                                                     | Parameters                                                          |
+|-----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| `INDEXER_REPLACED_TRANSACTIONS_BATCH_SIZE`                    | Batch size for replaced transactions fetcher. Implemented in [#14576](https://github.com/blockscout/blockscout/pull/14576).                                                                                                                                                                                                                                                                                                                                                                                                      | Version: v11.2.3\+ <br />Default: `10` <br />Applications: Indexer                                         |
+| `INDEXER_REPLACED_TRANSACTIONS_CONCURRENCY`                   | Concurrency for replaced transactions fetcher. Implemented in [#14576](https://github.com/blockscout/blockscout/pull/14576).                                                                                                                                                                                                                                                                                                                                                                                                     | Version: v11.2.3\+ <br />Default: `4` <br />Applications: Indexer                                          |
+| `BLOCK_BROADCAST_TYPE`                                  | Type of data sent in new block socket events. May be `block` for full block data or `count` for new blocks count. Implemented in [#14571](https://github.com/blockscout/blockscout/pull/14571).                                                                                                                                                                                                                                                    | Version: v11.2.3\+ <br />Default: `block` <br />Applications: API                                                                                                                                                                                                                                                                                                       |
+| `INDEXER_HANDLE_PARTIALLY_IMPORTED_BLOCK_INTERVAL`            | Interval between retrying to set `refetch_needed=true` for blocks whose import failed on some stage in cases when setting `refetch_needed` fails itself. Implemented in [#14597](https://github.com/blockscout/blockscout/pull/14597).                                                                                                                                                                                                                                                                                           | Version: v11.2.3\+ <br />Default: `1s` <br />Applications: Indexer                                         |
+
+
+## 11.2.2
+
+### 🚀 Features
+
+- Add realtime ERC-20 token balance and block indexing delay metrics ([#14531](https://github.com/blockscout/blockscout/issues/14531))
+
+### 🐛 Bug Fixes
+
+- Fix import result merging for chunked data ([#14528](https://github.com/blockscout/blockscout/issues/14528))
+- Add missing async importers for token balances and instances ([#14534](https://github.com/blockscout/blockscout/pull/14534))
+- Log error instead of silent empty map on CBOR decode failure ([#14510](https://github.com/blockscout/blockscout/issues/14510))
+- Log warning when bytecode metadata hex parsing fails ([#14511](https://github.com/blockscout/blockscout/issues/14511))
+
+
+## 11.2.1
+
+### 🐛 Bug Fixes
+
+- Don't call InternalTransaction.async_fetch from ContractCreator ([#14482](https://github.com/blockscout/blockscout/issues/14482))
+
+
+## 11.2.0
+
+### 🚀 Features
+
+- Support for EIP-7708 on arc ([#14336](https://github.com/blockscout/blockscout/pull/14336))
+- Preload only listened entities before broadcast ([#14430](https://github.com/blockscout/blockscout/issues/14430))
+- Add hot smart contracts caching ([#14320](https://github.com/blockscout/blockscout/issues/14320))
+- Add MinimalProxy detection for mid-bytecode EIP-1167-like pattern ([#14426](https://github.com/blockscout/blockscout/issues/14426))
+- Mark instance unhealthy when cache block lags DB ([#14449](https://github.com/blockscout/blockscout/pull/14449))
+
+### 🐛 Bug Fixes
+
+- Don't start health monitor in tests ([#14481](https://github.com/blockscout/blockscout/pull/14481))
+- Improve BlockNumber cache ([#14453](https://github.com/blockscout/blockscout/pull/14453))
+- Fix revert reason for nethermind ([#14442](https://github.com/blockscout/blockscout/pull/14442))
+- Fix token import on Celo ([#14435](https://github.com/blockscout/blockscout/issues/14435))
+- Scope missing_current_token_balances_count indexer metric to configured block ranges ([#14423](https://github.com/blockscout/blockscout/issues/14423))
+- Restrict minimal proxy detection to bytecode ≤ 100 bytes ([#14427](https://github.com/blockscout/blockscout/issues/14427))
+- Add required fields to SmartContract schema ([#14437](https://github.com/blockscout/blockscout/issues/14437))
+- Fix traceable_blocks_dynamic_query ([#14436](https://github.com/blockscout/blockscout/issues/14436))
+
+### ⚙️ Miscellaneous Tasks
+
+- Optimize deriving current token balances ([#14450](https://github.com/blockscout/blockscout/pull/14450), [#14479](https://github.com/blockscout/blockscout/pull/14479))
+- Limit max node requests in one batch ([#14319](https://github.com/blockscout/blockscout/issues/14319))
+- Log block fetch errors in catchup fetcher ([#14318](https://github.com/blockscout/blockscout/issues/14318))
+- Reset skip metadata flag for NFTs ([#14337](https://github.com/blockscout/blockscout/issues/14337))
+- Enhance missing current token balances metric ([#14438](https://github.com/blockscout/blockscout/issues/14438))
+- Perceive "out of gas" error as contract failure ([#14417](https://github.com/blockscout/blockscout/issues/14417))
+- Add PG statement_timeout for import transactions ([#14414](https://github.com/blockscout/blockscout/issues/14414))
+- Comment out direct Sourcify tests ([#8168](https://github.com/blockscout/blockscout/issues/8168))
+
+### New ENV variables
+
+| Variable                                            | Description                                                                                                                                                                                     | Parameters                                                          |
+|-----------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| `ETHEREUM_JSONRPC_HTTP_BATCH_SIZE`        | Max http requests count in one batch. Implemented in [#14319](https://github.com/blockscout/blockscout/pull/14319).                                                                                                                         | Version: v11.2.0\+ <br />Default: `500` <br />Applications: API, Indexer                         |
+| `CACHE_HOT_SMART_CONTRACTS_5M_PERIOD`                          | TTL for ConCache entries serving `GET /api/v2/stats/hot-smart-contracts` with `scale=5m`. Controls how long paginated rankings over the last 5 minutes of contract activity are reused before recomputing from the database. [Time format](/setup/env-variables/backend-env-variables#time-format). Shorter TTL = fresher data, more DB load. Longer TTL = less load, staler rankings. | Version: v11.2.0\+ <br />Default: `30s` <br />Applications: API           |
+| `CACHE_HOT_SMART_CONTRACTS_1H_PERIOD`                          | TTL for ConCache entries serving `GET /api/v2/stats/hot-smart-contracts` with `scale=1h`. Controls how long paginated rankings over the last 1 hour of contract activity are reused before recomputing from the database. [Time format](/setup/env-variables/backend-env-variables#time-format).                                                                                       | Version: v11.2.0\+ <br />Default: `6m` <br />Applications: API            |
+| `CACHE_HOT_SMART_CONTRACTS_3H_PERIOD`                          | TTL for ConCache entries serving `GET /api/v2/stats/hot-smart-contracts` with `scale=3h`. Controls how long paginated rankings over the last 3 hours of contract activity are reused before recomputing from the database. [Time format](/setup/env-variables/backend-env-variables#time-format).                                                                                      | Version: v11.2.0\+ <br />Default: `18m` <br />Applications: API           |
+
+
 ## 11.1.3
 
 ### 🐛 Bug Fixes

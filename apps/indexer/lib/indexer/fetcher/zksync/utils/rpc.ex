@@ -9,6 +9,7 @@ defmodule Indexer.Fetcher.ZkSync.Utils.Rpc do
   alias ABI.{FunctionSelector, TypeDecoder}
   alias EthereumJSONRPC.ZkSync.Constants.Contracts, as: ZkSyncContracts
   alias Explorer.Chain.Hash
+  alias Explorer.Chain.ZkSync.ViaExecution
   alias Indexer.Helper, as: IndexerHelper
 
   import Indexer.Fetcher.ZkSync.Utils.Logging, only: [log_error: 1, log_info: 1]
@@ -102,6 +103,10 @@ defmodule Indexer.Fetcher.ZkSync.Utils.Rpc do
   @spec transform_batch_details_to_map(map()) :: map()
   def transform_batch_details_to_map(json_response)
       when is_map(json_response) do
+    ViaExecution.normalize_rpc(json_response, &decode_batch_details/1)
+  end
+
+  defp decode_batch_details(json_response) do
     %{
       "number" => {:number, :ok},
       "timestamp" => {:timestamp, :ts_to_datetime},
@@ -161,7 +166,8 @@ defmodule Indexer.Fetcher.ZkSync.Utils.Rpc do
       end_block: batch.end_block,
       commit_id: batch.commit_id,
       prove_id: batch.prove_id,
-      execute_id: batch.execute_id
+      execute_id: batch.execute_id,
+      via_executed_at: batch.via_executed_at
     }
   end
 

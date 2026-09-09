@@ -12,7 +12,7 @@ defmodule Explorer.Chain.ZkSync.TransactionBatch do
 
   alias Explorer.Chain.ZkSync.{BatchTransaction, LifecycleTransaction}
 
-  @optional_attrs ~w(commit_id prove_id execute_id)a
+  @optional_attrs ~w(commit_id prove_id execute_id via_executed_at)a
 
   @required_attrs ~w(number timestamp l1_transaction_count l2_transaction_count root_hash l1_gas_price l2_fair_gas_price start_block end_block)a
 
@@ -31,12 +31,16 @@ defmodule Explorer.Chain.ZkSync.TransactionBatch do
           prove_id: non_neg_integer() | nil,
           prove_transaction: %Ecto.Association.NotLoaded{} | LifecycleTransaction.t() | nil,
           execute_id: non_neg_integer() | nil,
+          via_executed_at: DateTime.t() | nil,
           execute_transaction: %Ecto.Association.NotLoaded{} | LifecycleTransaction.t() | nil
         }
 
   @primary_key {:number, :integer, autogenerate: false}
   schema "zksync_transaction_batches" do
     field(:timestamp, :utc_datetime_usec)
+    # Authoritative batch-local time for Via's shared execution marker.
+    # Never backfill from the hash-keyed lifecycle timestamp, which may belong to another batch.
+    field(:via_executed_at, :utc_datetime_usec)
     field(:l1_transaction_count, :integer)
     field(:l2_transaction_count, :integer)
     field(:root_hash, Hash.Full)

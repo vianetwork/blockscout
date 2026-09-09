@@ -4,7 +4,7 @@ defmodule Indexer.Fetcher.ZkSync.StatusTracking.CommonUtils do
     Common functions for status changes trackers
   """
 
-  alias Explorer.Chain.ZkSync.Reader
+  alias Explorer.Chain.ZkSync.{Reader, ViaExecution}
   alias Indexer.Fetcher.ZkSync.Utils.{Db, Rpc}
   import Indexer.Fetcher.ZkSync.Utils.Logging, only: [log_warning: 1]
 
@@ -148,7 +148,10 @@ defmodule Indexer.Fetcher.ZkSync.StatusTracking.CommonUtils do
   def associate_and_import_or_prepare_for_recovery(batches_numbers, l1_transactions, transaction_hash, association_key)
       when is_list(batches_numbers) and is_map(l1_transactions) and is_binary(transaction_hash) and
              association_key in [:commit_id, :prove_id, :execute_id] do
-    case prepare_batches_to_import(batches_numbers, %{association_key => l1_transactions[transaction_hash][:id]}) do
+    transaction = l1_transactions[transaction_hash]
+    update = ViaExecution.association_update(association_key, transaction)
+
+    case prepare_batches_to_import(batches_numbers, update) do
       {:error, batches_to_recover} ->
         {:recovery_required, batches_to_recover}
 

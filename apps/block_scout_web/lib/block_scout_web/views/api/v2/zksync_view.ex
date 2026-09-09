@@ -3,7 +3,7 @@ defmodule BlockScoutWeb.API.V2.ZkSyncView do
   use BlockScoutWeb, :view
 
   alias Explorer.Chain.{Block, Transaction}
-  alias Explorer.Chain.ZkSync.TransactionBatch
+  alias Explorer.Chain.ZkSync.{TransactionBatch, ViaExecution}
 
   alias BlockScoutWeb.API.V2.Helper, as: APIV2Helper
 
@@ -124,7 +124,8 @@ defmodule BlockScoutWeb.API.V2.ZkSyncView do
         batch_number: get_batch_number(zksync_entity),
         commit_transaction: zksync_entity.zksync_commit_transaction,
         prove_transaction: zksync_entity.zksync_prove_transaction,
-        execute_transaction: zksync_entity.zksync_execute_transaction
+        execute_transaction: zksync_entity.zksync_execute_transaction,
+        via_executed_at: APIV2Helper.get_2map_data(zksync_entity, :zksync_batch, :via_executed_at)
       })
       |> Map.put("batch_number", get_batch_number(zksync_entity))
 
@@ -170,9 +171,15 @@ defmodule BlockScoutWeb.API.V2.ZkSyncView do
     [:commit_transaction, :prove_transaction, :execute_transaction]
     |> Enum.reduce(%{}, fn key, l1_transactions ->
       case Map.get(zksync_item, key) do
-        nil -> Map.put(l1_transactions, key, nil)
-        %Ecto.Association.NotLoaded{} -> Map.put(l1_transactions, key, nil)
-        value -> Map.put(l1_transactions, key, %{hash: value.hash, ts: value.timestamp})
+        nil ->
+          Map.put(l1_transactions, key, nil)
+
+        %Ecto.Association.NotLoaded{} ->
+          Map.put(l1_transactions, key, nil)
+
+        value ->
+          timestamp = ViaExecution.timestamp(key, value, zksync_item)
+          Map.put(l1_transactions, key, %{hash: value.hash, ts: timestamp})
       end
     end)
   end

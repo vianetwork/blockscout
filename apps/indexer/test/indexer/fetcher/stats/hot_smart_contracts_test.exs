@@ -356,6 +356,19 @@ defmodule Indexer.Fetcher.Stats.HotSmartContractsTest do
     end
   end
 
+  test "logs an unavailable date without an error" do
+    insert(:block, number: 0, timestamp: DateTime.add(DateTime.utc_now(), -40, :day))
+    date = Date.add(Date.utc_today(), -1)
+
+    log =
+      capture_log([level: :info], fn ->
+        assert {:noreply, :ok} = HotSmartContracts.handle_info({:fetch_for_date, date, false}, :ok)
+      end)
+
+    assert log =~ "No indexed blocks for hot contracts on #{date}"
+    refute log =~ "Error fetching hot contracts"
+  end
+
   describe "handle_continue/2" do
     test "processes chain age check on startup" do
       # Create blocks older than 30 days

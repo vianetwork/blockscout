@@ -44,6 +44,17 @@ defmodule Indexer.Fetcher.Stats.HotSmartContracts do
 
       Logger.info("Hot contracts fetched for #{date}")
     else
+      {:error, {:error, :not_found}} ->
+        if Date.diff(Date.utc_today(), date) < @max_days_ago do
+          schedule_message_on_the_next_day({:fetch_for_date, date, false})
+        end
+
+        if new_day? do
+          schedule_next_day_fetch()
+        end
+
+        Logger.info("No indexed blocks for hot contracts on #{date}")
+
       {:error, error} ->
         Process.send_after(self(), {:fetch_for_date, date, new_day?}, @retry_interval)
         Logger.error("Error fetching hot contracts for #{date}: #{inspect(error)}")
